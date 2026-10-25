@@ -28,9 +28,6 @@ pipeline {
     environment {
         DOCKER_IMAGE_NAME = "${params.IMAGE_NAME}"
         DOCKER_IMAGE_TAG  = "${env.BUILD_NUMBER}"
-        // Descomenta si vas a usar un registro como Docker Hub, AWS ECR, etc.:
-        // REGISTRY          = 'docker.io/tu-usuario'
-        // REGISTRY_CREDS    = 'dockerhub-credentials'
     }
 
     stages {
@@ -92,7 +89,7 @@ pipeline {
             }
         }
 
-        stage('Push to Registry') {
+        stage('Push to Docker Hub') {
             when {
                 anyOf {
                     branch 'main'
@@ -100,24 +97,38 @@ pipeline {
                 }
             }
             steps {
-                echo '=== Paso 5: Subida al Registro Docker (Opcional) ==='
-                echo 'Para activar la subida automática a Docker Hub/ECR, configura tus credenciales en Jenkins y descomenta el bloque.'
-                /*
-                withCredentials([usernamePassword(credentialsId: env.REGISTRY_CREDS, passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
+                echo '=== Paso 5: Autenticando y subiendo imagen a Docker Hub ==='
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
                     script {
-                        def pushCommands = """
-                            echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin
-                            docker tag ${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG} ${env.REGISTRY}/${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG}
-                            docker push ${env.REGISTRY}/${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG}
-                        """
+                        def fullImageName = "${DOCKER_USER}/${env.DOCKER_IMAGE_NAME}"
+                        def tagBuildCmd   = "docker tag ${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG} ${fullImageName}:${env.DOCKER_IMAGE_TAG}"
+                        def tagLatestCmd  = "docker tag ${env.DOCKER_IMAGE_NAME}:${env.DOCKER_IMAGE_TAG} ${fullImageName}:latest"
+                        def pushBuildCmd  = "docker push ${fullImageName}:${env.DOCKER_IMAGE_TAG}"
+                        def pushLatestCmd = "docker push ${fullImageName}:latest"
+                        def logoutCmd     = "docker logout"
+
                         if (isUnix()) {
-                            sh pushCommands
+                            // Comillas simples para que Groovy no exponga la variable en logs
+                            sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+                            sh tagBuildCmd
+                            sh tagLatestCmd
+                            sh pushBuildCmd
+                            sh pushLatestCmd
+                            sh logoutCmd
                         } else {
-                            bat pushCommands
+                            bat 'echo %DOCKER_PASS% | docker login -u %DOCKER_USER% --password-stdin'
+                            bat tagBuildCmd
+                            bat tagLatestCmd
+                            bat pushBuildCmd
+                            bat pushLatestCmd
+                            bat logoutCmd
                         }
                     }
                 }
-                */
             }
         }
     }

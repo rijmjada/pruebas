@@ -144,6 +144,42 @@ Verás listadas `demo-app:1` y `demo-app:latest`.
 
 ---
 
+## 🔒 Paso 7: Subida Segura a Docker Hub (Sin exponer credenciales en repos públicos)
+
+El `Jenkinsfile` ya está configurado con `withCredentials` para que tu usuario y contraseña **nunca queden expuestos ni en el repositorio público ni en los logs de la consola** (Jenkins los enmascara con `****`).
+
+### 1. Generar un Token de Acceso en Docker Hub (Buena práctica):
+1. Inicia sesión en [Docker Hub](https://hub.docker.com/).
+2. Haz clic en tu avatar arriba a la derecha > **Account Settings**.
+3. En el menú lateral izquierdo, ve a **Security** > **Personal access tokens**.
+4. Haz clic en **Generate new token**:
+   - Nombre: `jenkins-pipeline`.
+   - Permisos: **Read & Write**.
+5. Copia el token generado (solo se muestra una vez).
+
+### 2. Guardar la credencial en Jenkins:
+1. En tu Jenkins (`http://localhost:8085`), ve a:
+   👉 **Administrar Jenkins** (*Manage Jenkins*) > **Credentials** > **System** > **Global credentials (unrestricted)**.
+2. Haz clic en **Add Credentials** (*Agregar credenciales*):
+   - **Kind**: `Username with password`.
+   - **Username**: Tu usuario de Docker Hub (por ejemplo `rijmjada`).
+   - **Password**: El token que copiaste de Docker Hub.
+   - **ID**: `dockerhub-credentials` (⚠️ debe ser exactamente este ID).
+3. Haz clic en **Create**.
+
+### 3. Subir el Jenkinsfile actualizado a GitHub:
+```bash
+git add Jenkinsfile GUIA_JENKINS_LOCAL.md
+git commit -m "ci: habilitar subida segura a Docker Hub"
+git push origin main
+```
+
+¡Listo! En el próximo build en la rama `main`, Jenkins publicará automáticamente tu imagen como:
+- `<tu-usuario>/demo-app:<build_number>`
+- `<tu-usuario>/demo-app:latest`
+
+---
+
 ## 🛠️ Comandos útiles para el día a día
 
 | Acción | Comando |
@@ -152,3 +188,4 @@ Verás listadas `demo-app:1` y `demo-app:latest`.
 | **Detener Jenkins** | `docker compose -f compose-jenkins.yaml stop` |
 | **Reanudar Jenkins** | `docker compose -f compose-jenkins.yaml start` |
 | **Apagar y limpiar contenedor** | `docker compose -f compose-jenkins.yaml down` |
+
