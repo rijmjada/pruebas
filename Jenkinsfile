@@ -91,9 +91,9 @@ pipeline {
 
         stage('Push to Docker Hub') {
             when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
+                expression {
+                    def currentBranch = env.GIT_BRANCH ?: env.BRANCH_NAME ?: 'main'
+                    return currentBranch.contains('main') || currentBranch.contains('master')
                 }
             }
             steps {
